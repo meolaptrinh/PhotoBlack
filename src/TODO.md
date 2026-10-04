@@ -1,0 +1,3 @@
+- Thêm tab ảnh
+- Thêm giao diện chọn chuẩn ảnh
+- Thêm tính năng sửa chữa ảnh nhanh

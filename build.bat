@@ -10,20 +10,20 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-g++ -std=c++17 src/main.cpp bin/resource.o ^
+g++ -std=c++17 -finput-charset=UTF-8 -fexec-charset=UTF-8 src/main.cpp bin/resource.o ^
     -I"%CD%/lib/wxWidgets/include" ^
     -I"%CD%/lib/wxWidgets/lib/gcc_lib/mswu" ^
     -L"%CD%/lib/wxWidgets/lib/gcc_lib" ^
-    -lwxmsw33u_core -lwxbase33u ^
-    -lwxtiff -lwxjpeg -lwxpng -lwxzlib ^
+    -lwxmsw33u_aui -lwxmsw33u_core -lwxbase33u ^
+    -lwxtiff -lwxjpeg -lwxpng -lwxzlib -lwxwebp ^
     -lkernel32 -luser32 -lgdi32 -lcomdlg32 -lwinspool -lwinmm ^
     -lshell32 -lole32 -loleaut32 -luuid -lrpcrt4 ^
     -ladvapi32 -lversion -lws2_32 -luxtheme -lshlwapi ^
     -lgdiplus -loleacc -lmsimg32 -lcomctl32 ^
     -static -static-libgcc -static-libstdc++ ^
-    -mwindows ^
     -o bin/photoblack.exe
 
+REM -mwindows
 if %errorlevel% neq 0 (
     echo.
     echo [ERR]
