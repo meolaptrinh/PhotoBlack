@@ -1,0 +1,57 @@
+gcc_mswu\wxwebp_sharpyuv_sse2.o: \
+ ../../3rdparty/libwebp/sharpyuv/sharpyuv_sse2.c \
+ ..\..\3rdparty\libwebp/sharpyuv/sharpyuv_dsp.h \
+ ..\..\3rdparty\libwebp/sharpyuv/sharpyuv_cpu.h \
+ ..\..\3rdparty\libwebp/sharpyuv/sharpyuv.h \
+ ..\..\3rdparty\libwebp/src/dsp/cpu.h \
+ F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stddef.h \
+ F:/meo/Cpp/mingw64/include/stddef.h F:/meo/Cpp/mingw64/include/crtdefs.h \
+ F:/meo/Cpp/mingw64/include/corecrt.h F:/meo/Cpp/mingw64/include/_mingw.h \
+ F:/meo/Cpp/mingw64/include/_mingw_mac.h \
+ F:/meo/Cpp/mingw64/include/_mingw_secapi.h \
+ F:/meo/Cpp/mingw64/include/vadefs.h \
+ F:/meo/Cpp/mingw64/include/sdks/_mingw_ddk.h \
+ ..\..\3rdparty\libwebp/src/webp/types.h \
+ F:/meo/Cpp/mingw64/include/inttypes.h \
+ F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stdint.h \
+ F:/meo/Cpp/mingw64/include/stdint.h \
+ F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/emmintrin.h \
+ F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/xmmintrin.h \
+ F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/mmintrin.h \
+ F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/mm_malloc.h \
+ F:/meo/Cpp/mingw64/include/stdlib.h \
+ F:/meo/Cpp/mingw64/include/corecrt_wstdlib.h \
+ F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/limits.h \
+ F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/syslimits.h \
+ F:/meo/Cpp/mingw64/include/limits.h \
+ F:/meo/Cpp/mingw64/include/sec_api/stdlib_s.h \
+ F:/meo/Cpp/mingw64/include/malloc.h F:/meo/Cpp/mingw64/include/errno.h
+..\..\3rdparty\libwebp/sharpyuv/sharpyuv_dsp.h:
+..\..\3rdparty\libwebp/sharpyuv/sharpyuv_cpu.h:
+..\..\3rdparty\libwebp/sharpyuv/sharpyuv.h:
+..\..\3rdparty\libwebp/src/dsp/cpu.h:
+F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stddef.h:
+F:/meo/Cpp/mingw64/include/stddef.h:
+F:/meo/Cpp/mingw64/include/crtdefs.h:
+F:/meo/Cpp/mingw64/include/corecrt.h:
+F:/meo/Cpp/mingw64/include/_mingw.h:
+F:/meo/Cpp/mingw64/include/_mingw_mac.h:
+F:/meo/Cpp/mingw64/include/_mingw_secapi.h:
+F:/meo/Cpp/mingw64/include/vadefs.h:
+F:/meo/Cpp/mingw64/include/sdks/_mingw_ddk.h:
+..\..\3rdparty\libwebp/src/webp/types.h:
+F:/meo/Cpp/mingw64/include/inttypes.h:
+F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stdint.h:
+F:/meo/Cpp/mingw64/include/stdint.h:
+F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/emmintrin.h:
+F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/xmmintrin.h:
+F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/mmintrin.h:
+F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/mm_malloc.h:
+F:/meo/Cpp/mingw64/include/stdlib.h:
+F:/meo/Cpp/mingw64/include/corecrt_wstdlib.h:
+F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/limits.h:
+F:/meo/Cpp/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/syslimits.h:
+F:/meo/Cpp/mingw64/include/limits.h:
+F:/meo/Cpp/mingw64/include/sec_api/stdlib_s.h:
+F:/meo/Cpp/mingw64/include/malloc.h:
+F:/meo/Cpp/mingw64/include/errno.h:
