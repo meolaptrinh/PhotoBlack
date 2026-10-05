@@ -102,7 +102,7 @@ private:
             };
             wid->Bind(wxEVT_ENTER_WINDOW, checkHover);
             wid->Bind(wxEVT_LEAVE_WINDOW, checkHover);
-            wid->Bind(wxEVT_LEFT_UP,[img,stan,this](wxMouseEvent evn)mutable{img.stand = stan;befCheckImg(img);evn.Skip();});
+            wid->Bind(wxEVT_LEFT_UP,[img,stan,this](wxMouseEvent& evn)mutable{img.stand = stan;befCheckImg(img);evn.Skip();});
         };
 
         wxBoxSizer* cspsz = new wxBoxSizer(wxVERTICAL);  
