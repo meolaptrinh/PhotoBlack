@@ -1,3 +1,1 @@
-- Thêm tab ảnh
-- Thêm tính năng sửa chữa ảnh nhanh
-- Viết thêm thuật toán suy màu cho kiểu Orthochromatic
+- Thêm tính năng di chuyển ảnh WADS
