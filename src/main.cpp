@@ -64,6 +64,57 @@ unsigned char* zoomimg(bwimg img, int k){
     }
     return res;
 }
+//các hình ảnh tạo sẵn
+// một hình vuông màu 
+unsigned char* colorSqr(int w,px cl){
+    unsigned char* res = (unsigned char*)malloc(w*w*3);
+    for(int i = 0;i<w*w*3;i+=3){
+        res[i] = cl.r;
+        res[i+1] = cl.g;
+        res[i+2] = cl.b;
+    }
+    return res;
+}
+//hình vuông hue rgb
+unsigned char* huergbSqr(double h){
+    double li = 1.0;
+    double s = 0.0;
+    unsigned char*res = (unsigned char*)malloc(200*200*3);
+    int j = 0;
+    for(int i = 0;i<200*200*3;i+=3){
+        if(i/3/200 != j){
+            li -= 0.005;
+            s = 0;
+            j++;
+        }
+        wxImage::HSVValue hsv(h/360,s,li);
+        wxImage::RGBValue rgb = wxImage::HSVtoRGB(hsv);
+        res[i] = rgb.red;
+        res[i+1] = rgb.green;
+        res[i+2] = rgb.blue;
+        s += 0.005;
+    }
+    return res;
+}
+// dải màu hue 
+unsigned char* huebarRec(){
+    double h = 0;
+    unsigned char*res = (unsigned char*)malloc(15*200*3);
+    int j = 0;
+    for(int i = 0;i<15*200*3;i+=3){
+        if(i/3/200 != j){
+            j++;
+            h = 0;
+        }
+        wxImage::HSVValue hsv(h,1.0,1.0);
+        wxImage::RGBValue rgb = wxImage::HSVtoRGB(hsv);
+        res[i] = rgb.red;
+        res[i+1] = rgb.green;
+        res[i+2] = rgb.blue;
+        h += 0.005;
+    }
+    return res;
+}
 class PbFrame:public wxFrame{
 private:
     //trình quản lí tab
@@ -221,9 +272,13 @@ private:
         img.w = w;
         workTabImg(img,data);
     }
+    
     //tạo tab ảnh mới 
     void workTabImg(bwimg& img,unsigned char* imgpx){
-        wxScrolledWindow* wtp = new wxScrolledWindow(notebook,wxID_ANY);
+        wxPanel* fwtp = new wxPanel(notebook,wxID_ANY);
+        wxScrolledWindow* wtp = new wxScrolledWindow(fwtp,wxID_ANY);
+        wxBoxSizer* fwtpsz = new wxBoxSizer(wxHORIZONTAL);
+        fwtp->SetSizer(fwtpsz);
         wtp->SetCanFocus(true);
         wtp->SetFocus();
         //hiển thị ảnh 
@@ -259,7 +314,91 @@ private:
             }
             evn.Skip();
         });
-        notebook->AddPage(wtp,tou8(img.name),true);
+        //thanh công cụ 
+        px usclr = {20,0,125};
+        wxPanel* tlpn = new wxPanel(fwtp,wxID_ANY,wxPoint(0,0),wxSize(50,520));
+        tlpn->SetBackgroundColour(wxColor(255,255,255));
+        wxBoxSizer* tlpnsz = new wxBoxSizer(wxVERTICAL);
+        tlpn->Raise();
+        // hình vuông màu
+        wxImage showsqr(wxSize(30,30),colorSqr(30,usclr));
+        wxBitmapButton* btnsqr = new wxBitmapButton(tlpn,wxID_ANY,wxBitmap(showsqr));
+        tlpnsz->Add(btnsqr,0,wxALIGN_CENTER_HORIZONTAL|wxALL,10);
+        tlpn->SetSizer(tlpnsz);
+        tlpn->Layout();
+        //rgb picker 
+        wxPanel* rpkp = new wxPanel(fwtp,wxID_ANY,wxPoint(70,0),wxSize(300,300));
+        rpkp->SetBackgroundColour(wxColor(0,0,0));
+        rpkp->Raise();
+        rpkp->Hide();
+        wxBoxSizer* rpkpsz = new wxBoxSizer(wxVERTICAL);
+        rpkp->SetSizer(rpkpsz);
+        //hình vuông chọn 
+        wxImage picksqr(wxSize(200,200),huergbSqr(0));
+        wxStaticBitmap* bmppick = new wxStaticBitmap(rpkp,wxID_ANY,wxBitmap(picksqr));
+        
+        rpkpsz->Add(bmppick,0,wxALL|wxFIXED_MINSIZE,5);
+        //Hue Slider 
+        wxSlider* huesl = new wxSlider(rpkp,wxID_ANY,0,0,360,wxPoint(0,230),wxSize(200,30),wxSL_HORIZONTAL);
+        rpkpsz->Add(huesl);
+        //dải Hue 
+        wxImage huerec(wxSize(200,15),huebarRec());
+        wxStaticBitmap* bmphrec = new wxStaticBitmap(rpkp,wxID_ANY,wxBitmap(huerec));
+        bmphrec->Disable();
+        rpkpsz->Add(bmphrec,0,wxALL,10);
+        huesl->Bind(wxEVT_SLIDER,[bmppick,rpkp](wxCommandEvent& evn){
+            int hue = evn.GetInt();
+            wxImage picksqr2(wxSize(200,200),huergbSqr(hue));
+            bmppick->SetBitmap(picksqr2);
+            rpkp->Refresh(false);
+        });
+        // khi hiện hay ẩn picker 
+        btnsqr->Bind(wxEVT_BUTTON,[rpkp](wxCommandEvent& evn)mutable{
+            rpkp->Show(!rpkp->IsShown());
+            if(rpkp->IsShown()){
+                rpkp->Raise();
+                rpkp->Layout();
+                rpkp->Refresh();
+            }
+        });
+        //click chọn màu 
+        auto pckerfunc = [btnsqr,huesl,usclr](wxMouseEvent& evn)mutable{
+            if(evn.LeftDown() || (evn.Dragging() && evn.LeftIsDown())){
+                int clx = evn.GetPosition().x;
+                int cly = evn.GetPosition().y;
+                double s = clx*0.005;
+                double v = 1.0-(cly*0.005);
+                double h = huesl->GetValue();
+                wxImage::HSVValue hsv(h/360,s,v);
+                wxImage::RGBValue rgb = wxImage::HSVtoRGB(hsv);
+                usclr.r = rgb.red;
+                usclr.g = rgb.green;                
+                usclr.b = rgb.blue;
+                wxImage sqr2(wxSize(30,30),colorSqr(30,usclr));
+                btnsqr->SetBitmap(sqr2);
+                evn.Skip();
+            }
+        };
+        bmppick->Bind(wxEVT_LEFT_DOWN,pckerfunc);
+        bmppick->Bind(wxEVT_MOTION,pckerfunc);
+        // chuột click lên ảnh
+        bmpsimg->Bind(wxEVT_LEFT_UP,[bmpsimg](wxMouseEvent& evn){
+            int clx = evn.GetPosition().x;
+            int cly = evn.GetPosition().y;
+        });
+        // khi cuộn
+        auto scroll = [rpkp](wxScrollWinEvent& evn) {
+            if (rpkp->IsShown()) rpkp->Show(false);
+            evn.Skip();
+        };
+        wtp->Bind(wxEVT_SCROLLWIN_THUMBTRACK, scroll);
+        wtp->Bind(wxEVT_SCROLLWIN_LINEUP, scroll);
+        wtp->Bind(wxEVT_SCROLLWIN_LINEDOWN, scroll);
+        wtp->Bind(wxEVT_SCROLLWIN_PAGEUP, scroll);
+        wtp->Bind(wxEVT_SCROLLWIN_PAGEDOWN, scroll);
+        fwtpsz->Add(tlpn,0);
+        fwtpsz->Add(wtp,1,wxEXPAND);
+        notebook->AddPage(fwtp,tou8(img.name),true);
     }
 public:
     PbFrame():wxFrame(nullptr,wxID_ANY,"PhotoBlack",wxDefaultPosition,wxSize(1024,650)){
