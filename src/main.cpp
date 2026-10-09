@@ -2,6 +2,7 @@
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
 #include <wx/aui/auibook.h>
+#include <wx/popupwin.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../lib/stb_image_write.h"
 #define STB_IMAGE_IMPLEMENTATION
@@ -20,14 +21,23 @@ struct px{
     int r;
     int g;
     int b;
+    bool operator==(const px& o)const{
+        return r == o.r && g == o.g && b == o.b;
+    }
 };
 struct bwimg{
     int stand; //0 = Orthochromatic, 1 = Rec. 601
     int w;
     int h;
     std::vector<std::vector<px>>pixels;
+    std::vector<std::vector<px>>clrlayer;
     wxString path;
     wxString name;
+    px clrMerge(int x,int y){
+        px e = {-1,-1,-1};
+        if(clrlayer[x][y] == e)return pixels[x][y];
+        return clrlayer[x][y];
+    }
 };
 wxString getpath(const wxString& path){
     wxString epath = wxStandardPaths::Get().GetExecutablePath();
@@ -46,7 +56,7 @@ unsigned char* zoomimg(bwimg img, int k){
     std::vector<std::vector<px>>respx(img.w*k,std::vector<px>(img.h*k));
     for(int x = 0;x<img.w;x++){
         for(int y = 0;y<img.h;y++){
-            px clr = img.pixels[x][y];
+            px clr = img.clrMerge(x,y);
             for(int i = 0;i<k;i++){
                 for(int j = 0;j<k;j++){
                     respx[x*k+i][y*k + j] = clr;
@@ -60,6 +70,19 @@ unsigned char* zoomimg(bwimg img, int k){
             res[ind] = respx[x][y].r;
             res[ind+1] = respx[x][y].g;
             res[ind+2] = respx[x][y].b;
+        }
+    }
+    return res;
+}
+//thuật toán gộp 2 layer
+unsigned char* mergeLayer(bwimg img){
+    unsigned char* res = (unsigned char*)malloc(img.h*img.w*3);
+    for(int i = 0;i<img.h;i++){
+        for(int j = 0;j<img.w*3;j+=3){
+            px clr = img.clrMerge(j/3,i);
+            res[i*img.w*3 + j] = clr.r;
+            res[i*img.w*3 + j+1] = clr.g;
+            res[i*img.w*3 + j+2] = clr.b;
         }
     }
     return res;
@@ -267,69 +290,54 @@ private:
                 }
 
         }
+        std::vector<std::vector<px>>clrlayer(w,std::vector<px>(h,{-1,-1,-1}));
         img.pixels = res;
         img.h = h;
         img.w = w;
-        workTabImg(img,data);
+        img.clrlayer = clrlayer;
+        workTabImg(img,mergeLayer(img));
     }
     
     //tạo tab ảnh mới 
     void workTabImg(bwimg& img,unsigned char* imgpx){
         wxPanel* fwtp = new wxPanel(notebook,wxID_ANY);
-        wxScrolledWindow* wtp = new wxScrolledWindow(fwtp,wxID_ANY);
+        wxPanel* wtp = new wxScrolledWindow(fwtp,wxID_ANY);
         wxBoxSizer* fwtpsz = new wxBoxSizer(wxHORIZONTAL);
         fwtp->SetSizer(fwtpsz);
         wtp->SetCanFocus(true);
         wtp->SetFocus();
+
+        //IMPORTANT
+        px bsclr = {20,0,125};
+        auto usclr = std::make_shared<px>(bsclr);
+        auto ptac = std::make_shared<bool>(false);
+        auto erac = std::make_shared<bool>(false);
+        auto curzoom = std::make_shared<int>(1);
+        auto pimg = std::make_shared<bwimg>(img);
         //hiển thị ảnh 
         wxImage simg(wxSize(img.w,img.h),imgpx,nullptr);
         wxStaticBitmap* bmpsimg = new wxStaticBitmap(wtp,wxID_ANY,wxBitmap(simg));
+        bmpsimg->SetPosition(wxPoint(0,0));
         wxBoxSizer* wtpsz = new wxBoxSizer(wxVERTICAL);
-        wtpsz->Add(bmpsimg,1,wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL,20);
         wtp->SetSizer(wtpsz);
-        wtp->SetScrollRate(30,20);
         wtp->FitInside();
-        //zoom và di chuyển ảnh
-        int curzoom = 1;
-        wtp->Bind(wxEVT_CHAR_HOOK,[simg,bmpsimg,curzoom,img,wtp](wxKeyEvent& evn)mutable{
-            int key = evn.GetKeyCode();
-            //zoom
-            if(key == 'F' || key == 'f'){
-                if(curzoom>1){
-                    curzoom-=1;
-                    wxImage simg2(wxSize(img.w*curzoom,img.h*curzoom),zoomimg(img,curzoom),nullptr,false);
-                    bmpsimg->SetBitmap(simg2);
-                    wtp->FitInside();
-                    wtp->Layout();
-                }
-            }
-            if(key == 'G' || key == 'g'){
-                if(curzoom<8){
-                    curzoom += 1;
-                    wxImage simg2(wxSize(img.w*curzoom,img.h*curzoom),zoomimg(img,curzoom),nullptr,false);
-                    bmpsimg->SetBitmap(simg2); 
-                    wtp->FitInside();
-                    wtp->Layout();
-                }
-            }
-            evn.Skip();
-        });
+        wtp->Layout();
+        wtp->Lower();
         //thanh công cụ 
-        px usclr = {20,0,125};
         wxPanel* tlpn = new wxPanel(fwtp,wxID_ANY,wxPoint(0,0),wxSize(50,520));
         tlpn->SetBackgroundColour(wxColor(255,255,255));
         wxBoxSizer* tlpnsz = new wxBoxSizer(wxVERTICAL);
         tlpn->Raise();
         // hình vuông màu
-        wxImage showsqr(wxSize(30,30),colorSqr(30,usclr));
+        wxImage showsqr(wxSize(30,30),colorSqr(30,*usclr));
         wxBitmapButton* btnsqr = new wxBitmapButton(tlpn,wxID_ANY,wxBitmap(showsqr));
         tlpnsz->Add(btnsqr,0,wxALIGN_CENTER_HORIZONTAL|wxALL,10);
         tlpn->SetSizer(tlpnsz);
         tlpn->Layout();
         //rgb picker 
-        wxPanel* rpkp = new wxPanel(fwtp,wxID_ANY,wxPoint(70,0),wxSize(300,300));
+        wxPopupTransientWindow* rpkp = new wxPopupTransientWindow(fwtp,wxSIMPLE_BORDER);
         rpkp->SetBackgroundColour(wxColor(0,0,0));
-        rpkp->Raise();
+        rpkp->SetClientSize(wxSize(300,300));
         rpkp->Hide();
         wxBoxSizer* rpkpsz = new wxBoxSizer(wxVERTICAL);
         rpkp->SetSizer(rpkpsz);
@@ -344,8 +352,8 @@ private:
         //dải Hue 
         wxImage huerec(wxSize(200,15),huebarRec());
         wxStaticBitmap* bmphrec = new wxStaticBitmap(rpkp,wxID_ANY,wxBitmap(huerec));
+        bmphrec->SetPosition(wxPoint(10,275));
         bmphrec->Disable();
-        rpkpsz->Add(bmphrec,0,wxALL,10);
         huesl->Bind(wxEVT_SLIDER,[bmppick,rpkp](wxCommandEvent& evn){
             int hue = evn.GetInt();
             wxImage picksqr2(wxSize(200,200),huergbSqr(hue));
@@ -353,12 +361,13 @@ private:
             rpkp->Refresh(false);
         });
         // khi hiện hay ẩn picker 
-        btnsqr->Bind(wxEVT_BUTTON,[rpkp](wxCommandEvent& evn)mutable{
-            rpkp->Show(!rpkp->IsShown());
+        btnsqr->Bind(wxEVT_BUTTON,[rpkp,btnsqr](wxCommandEvent& evn)mutable{
             if(rpkp->IsShown()){
-                rpkp->Raise();
-                rpkp->Layout();
-                rpkp->Refresh();
+               rpkp->Dismiss();
+            }else{
+                wxPoint p = btnsqr->GetParent()->ClientToScreen(btnsqr->GetPosition());
+                rpkp->Position(wxPoint(p.x,p.y),rpkp->GetSize());
+                rpkp->Popup();
             }
         });
         //click chọn màu 
@@ -371,34 +380,97 @@ private:
                 double h = huesl->GetValue();
                 wxImage::HSVValue hsv(h/360,s,v);
                 wxImage::RGBValue rgb = wxImage::HSVtoRGB(hsv);
-                usclr.r = rgb.red;
-                usclr.g = rgb.green;                
-                usclr.b = rgb.blue;
-                wxImage sqr2(wxSize(30,30),colorSqr(30,usclr));
+                usclr->r = rgb.red;
+                usclr->g = rgb.green;                
+                usclr->b = rgb.blue;
+                wxImage sqr2(wxSize(30,30),colorSqr(30,*usclr));
                 btnsqr->SetBitmap(sqr2);
                 evn.Skip();
             }
         };
         bmppick->Bind(wxEVT_LEFT_DOWN,pckerfunc);
         bmppick->Bind(wxEVT_MOTION,pckerfunc);
-        // chuột click lên ảnh
-        bmpsimg->Bind(wxEVT_LEFT_UP,[bmpsimg](wxMouseEvent& evn){
-            int clx = evn.GetPosition().x;
-            int cly = evn.GetPosition().y;
+        // nút cọ vẽ màu lên ảnh
+        wxImage paintimg;
+        paintimg.LoadFile(getpath("../assets/img/buttons/paint.png"));
+        paintimg.Rescale(wxSize(30,30),wxIMAGE_QUALITY_HIGH);
+        wxImage paintimgA;
+        paintimgA.LoadFile(getpath("../assets/img/buttons/paintA.png"));
+        paintimgA.Rescale(wxSize(30,30),wxIMAGE_QUALITY_HIGH);
+        wxBitmapButton* btnpt = new wxBitmapButton(tlpn,wxID_ANY,wxBitmap(paintimg));
+        tlpnsz->Add(btnpt,0,wxALIGN_CENTER_HORIZONTAL|wxALL,10);
+        //nút cục gôm 
+        wxImage ersimg;
+        ersimg.LoadFile(getpath("../assets/img/buttons/erase.png"));
+        ersimg.Rescale(wxSize(30,30),wxIMAGE_QUALITY_HIGH);
+        wxImage ersimgA;
+        ersimgA.LoadFile(getpath("../assets/img/buttons/eraseA.png"));
+        ersimgA.Rescale(wxSize(30,30),wxIMAGE_QUALITY_HIGH);
+        wxBitmapButton* ersbtn = new wxBitmapButton(tlpn,wxID_ANY,wxBitmap(ersimg));
+        tlpnsz->Add(ersbtn,0,wxALIGN_CENTER_HORIZONTAL|wxALL,10);
+        //SỰ KIỆN 
+        //Sự kiện nút vẽ
+        btnpt->Bind(wxEVT_BUTTON,[ptac,paintimg,paintimgA,btnpt,ersbtn,erac,ersimg](wxCommandEvent& evn)mutable{
+            *ptac = !*ptac;
+            if(*ptac){*erac = false;ersbtn->SetBitmap(ersimg);}
+            btnpt->SetBitmap((*ptac?paintimgA:paintimg));
         });
-        // khi cuộn
-        auto scroll = [rpkp](wxScrollWinEvent& evn) {
-            if (rpkp->IsShown()) rpkp->Show(false);
+        //sự kiện nút gôm 
+        ersbtn->Bind(wxEVT_BUTTON,[erac,ersbtn,ersimg,ersimgA,ptac,paintimg,btnpt](wxCommandEvent& evn)mutable{
+            *erac = !(*erac);
+            if(*erac){*ptac = false;btnpt->SetBitmap(paintimg);}
+            ersbtn->SetBitmap((*erac?ersimgA:ersimg));
+        });
+        // chuột click lên ảnh
+        bmpsimg->Bind(wxEVT_LEFT_DOWN,[bmpsimg,curzoom,pimg,usclr,ptac,wtp,erac](wxMouseEvent& evn)mutable{
+            wxPoint p = evn.GetPosition();
+            int clx = (p.x/(*curzoom));
+            int cly = (p.y/(*curzoom));
+            if((clx>=0 && clx<pimg->w) &&(cly>=0 && cly<pimg->h)){
+                if(*ptac){
+                pimg->clrlayer[clx][cly] = *usclr;
+                }
+                if(*erac){
+                    pimg->clrlayer[clx][cly] = {-1,-1,-1};
+                }
+                wxImage simg2(wxSize(pimg->w*(*curzoom),pimg->h*(*curzoom)),zoomimg(*pimg,*curzoom),nullptr,false);
+                bmpsimg->SetBitmap(simg2); 
+            }
+        });
+        //zoom và di chuyển ảnh 
+        fwtp->Bind(wxEVT_CHAR_HOOK,[simg,bmpsimg,curzoom,pimg,wtp,rpkp](wxKeyEvent& evn)mutable{
+            int key = evn.GetKeyCode();
+            //zoom
+            if(key == 'F' || key == 'f'){
+                if(*curzoom>1){
+                    *curzoom-=1;
+                    wxImage simg2(wxSize(pimg->w*(*curzoom),pimg->h*(*curzoom)),zoomimg(*pimg,*curzoom),nullptr,false);
+                    bmpsimg->SetBitmap(simg2);
+                    wtp->FitInside();
+                    wtp->Layout();
+                }
+            }
+            if(key == 'G' || key == 'g'){
+                if(*curzoom<8){
+                    *curzoom += 1;
+                    wxImage simg2(wxSize(pimg->w*(*curzoom),pimg->h*(*curzoom)),zoomimg(*pimg,*curzoom),nullptr,false);
+                    bmpsimg->SetBitmap(simg2); 
+                    wtp->FitInside();
+                    wtp->Layout();
+                }
+            }
+            wxPoint bp = bmpsimg->GetPosition();
+            wxSize ps = wtp->GetClientSize();
+            if(key == 'A' || key == 'a'){bmpsimg->SetPosition(wxPoint(bp.x-5,bp.y));rpkp->Raise();}
+            if(key == 'D' || key == 'd'){bmpsimg->SetPosition(wxPoint(bp.x+5,bp.y));rpkp->Raise();}
+            if(key == 'W' || key == 'w'){bmpsimg->SetPosition(wxPoint(bp.x,bp.y-5));rpkp->Raise();}
+            if(key == 'S' || key == 's'){bmpsimg->SetPosition(wxPoint(bp.x,bp.y+5));rpkp->Raise();}
             evn.Skip();
-        };
-        wtp->Bind(wxEVT_SCROLLWIN_THUMBTRACK, scroll);
-        wtp->Bind(wxEVT_SCROLLWIN_LINEUP, scroll);
-        wtp->Bind(wxEVT_SCROLLWIN_LINEDOWN, scroll);
-        wtp->Bind(wxEVT_SCROLLWIN_PAGEUP, scroll);
-        wtp->Bind(wxEVT_SCROLLWIN_PAGEDOWN, scroll);
+        });
         fwtpsz->Add(tlpn,0);
         fwtpsz->Add(wtp,1,wxEXPAND);
         notebook->AddPage(fwtp,tou8(img.name),true);
+        img = *pimg;
     }
 public:
     PbFrame():wxFrame(nullptr,wxID_ANY,"PhotoBlack",wxDefaultPosition,wxSize(1024,650)){
